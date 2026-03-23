@@ -1,0 +1,8 @@
+variables:
+  var-dockerRegistry-serverName:                       'acrseu1integradesa01.azurecr.io'
+  var-dockerRegistry-name:                             'acrseu1integradesa01'
+  var-imageBaseRepository-name:                        'image-cor-dso-pacificoepsdev'
+  var-imageRepository-name:                            'image-ods-ne-consultaconvenios'
+  var-buildImage-path:                                 'devops/docker'
+  var-buildTag-latest:                                 'latest'
+  var-app-port:                                        '9000'

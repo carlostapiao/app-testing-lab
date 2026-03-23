@@ -1,0 +1,30 @@
+---
+description: Version prefix convention for package.json dependencies
+globs: package.json
+alwaysApply: false
+---
+
+# package.json versioning
+
+When editing or adding dependencies in `package.json`, follow this convention:
+
+## Dependencies (`dependencies`)
+
+- **Use the tilde (`~`) prefix** for all production dependencies.
+- Example: `"@nestjs/core": "~11.1.0"`, `"fastify": "~5.0.0"`
+- Tilde allows only **patch** updates (e.g. 11.1.0 → 11.1.1), keeping minor versions locked for stability in production.
+
+## DevDependencies (`devDependencies`)
+
+- **Use the caret (`^`) prefix** for all development dependencies.
+- Example: `"@nestjs/cli": "^11.0.0"`, `"typescript": "^5.3.3"`
+- Caret allows **minor and patch** updates (e.g. 11.0.0 → 11.1.0), so tooling can be updated more freely during development.
+
+## Summary
+
+| Section         | Prefix | Allowed updates   |
+|----------------|--------|--------------------|
+| dependencies   | `~`    | Patch only         |
+| devDependencies| `^`    | Minor and patch    |
+
+Do not use exact versions (e.g. `"1.2.3"` without prefix) unless required for a specific reason (e.g. overrides or security pins).

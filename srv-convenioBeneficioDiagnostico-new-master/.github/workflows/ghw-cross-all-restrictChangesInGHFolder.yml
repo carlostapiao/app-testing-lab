@@ -1,0 +1,46 @@
+name: gha-cross-all-restrictChangesInGHFolder
+on:
+  pull_request:
+    paths:
+      - '.github/**'  # Detecta cambios en la carpeta .github/
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  job_vd_checkActor:
+    runs-on: ubuntu-latest
+    outputs:
+      teams: ${{ steps.actorTeams.outputs.teams }}
+    steps: 
+      - name: stp-getTeamsfromActor
+        uses: tspascoal/get-user-teams-membership@v2
+        id: actorTeams
+        with:
+          username: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.SEC_ORG_ALL_GITHUB_VALIDATEACTOR }}
+
+  job_vd_PRActor:
+    runs-on: ubuntu-latest
+    if: (contains(needs.job_vd_checkActor.outputs.teams, 'CT-DSO-COEDevSecOps') || contains(needs.job_vd_checkActor.outputs.teams, 'CT-DSO-ChapterDevSecOps') || contains(needs.job_vd_checkActor.outputs.teams, 'CT-DSO-ChapterDevSecOpsExternal'))
+    needs: job_vd_checkActor
+    steps:
+      - name: stp-getPRActor
+        id: get-author
+        run: |
+          AUTHOR=$(jq -r '.pull_request.user.login' "$GITHUB_EVENT_PATH")
+          echo "PR_AUTHOR=$AUTHOR" >> $GITHUB_ENV
+          
+      - name: stp-validateActor
+        run: echo "✅ ${PR_AUTHOR} tiene permiso para modificar .github/"
+
+  job_notify_skipped:
+    runs-on: ubuntu-latest
+    needs: job_vd_PRActor
+    if: always() && (needs.job_vd_PRActor.result == 'skipped')
+    steps:
+      - name: stp-notify
+        run: |
+          echo "❌ El job job_vd_PRActor se ha omitido porque ${PR_AUTHOR} no tiene permiso para modificar la carpeta .github/"
+          exit 1

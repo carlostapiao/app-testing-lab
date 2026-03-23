@@ -1,0 +1,45 @@
+trigger:
+  branches:
+   include:
+     - development
+
+variables:
+ - template: config/config-development.yml
+
+stages:
+  - stage: stg_desa_ut_SecurityScan
+    displayName: 'stg-desa-ut-SourcesAdvancedSecurityScan'
+    variables:
+      advancedsecurity.codeql.results.published: true
+    pool: 
+     name: $(nameAgentPool)
+ 
+    jobs: 
+    - job: job_ut_SourcesSecurityScan
+      displayName: 'job-ut-SourcesSecurityScan'
+      steps:
+        - task: AdvancedSecurity-Codeql-Init@1
+          displayName: 'stp-AdvancedSecurityInit'
+          inputs:
+            languages: 'javascript'
+            sourcesfolder: src
+        
+        - task: npmAuthenticate@0
+          displayName: 'stp-NpmAuthenticate'
+          inputs:
+            workingFile: .npmrc
+            customEndpoint: "scn-desa-orgnsspacificosalud-frameworkbackend"
+        
+        # Instalar dependencias de npm
+        - task: CmdLine@2
+          displayName: 'stp-InstallDependencies'
+          inputs:
+            script: |
+                npm install
+                rm -rf package-lock.json
+
+        - task: AdvancedSecurity-Dependency-Scanning@1
+          displayName: 'stp-SCA-DependencyScanning'
+        
+        - task: AdvancedSecurity-Codeql-Analyze@1
+          displayName: 'stp-SAST-Analyze'

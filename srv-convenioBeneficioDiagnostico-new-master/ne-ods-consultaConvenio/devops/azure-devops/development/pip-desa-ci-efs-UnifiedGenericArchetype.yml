@@ -1,0 +1,29 @@
+trigger:
+ branches:
+   include:
+     - development
+    
+
+resources:
+  repositories:
+    - repository: uti-efs-templatesPipelines
+      type: git
+      name: NSS-PD-efs-EvolFramework2/uti-efs-templatesPipelines
+variables:
+- group: gv-bck-efs-UnifiedGenericArchetype
+
+pool: 
+   vmImage: ubuntu-latest
+stages:
+- stage: stgDesaBuContinuosIntegration
+  jobs:
+   - template: /devops/azure-devops/development/pip-desa-ci-efs-templateNodeCI.yml@uti-efs-templatesPipelines
+     parameters:
+      vmImage: 'ubuntu-latest'
+      RepositoryName: "self" 
+      nodeversion: $(nodeversion)
+      acrrepository: $(acrrepository) 
+      containerregistry: $(containerregistry)
+      builddirectory: 'dist' 
+      scregistry: $(scregistry)
+      sonarpkey: $(sn-desa-efs-sonarpkeyunifiedGenericArchetype)

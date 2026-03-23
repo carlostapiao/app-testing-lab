@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+set -e
+cd "$(dirname -- "$0")/.." || exit 1
+
+# Formatear código (Biome)
+npm run format
+
+# Corregir problemas de linting (Biome)
+npm run check:fix
+
+# Validar que no queden errores después de las correcciones
+npm run check
+
+# Ejecutar pruebas unitarias
+npm run test
+
+# Agregar archivos formateados/corregidos al staging
+git add -u

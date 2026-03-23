@@ -1,0 +1,23 @@
+variables:
+  # Namespace name
+  var-namespace:                                                    'ns-prod-mc-ods-oficinadigitalsalud'
+  # Service name
+  var-service:                                                      'svc-ms-oc-ne-consulta-conveniobeneficiodiagnosticos-ssd'
+  # Deployment name
+  var-deployment:                                                   'ms-oc-ne-consulta-conveniobeneficiodiagnosticos-ssd'
+  # Label pod
+  var-pod:                                                          'pod-ms-oc-ne-consulta-conveniobeneficiodiagnosticos-ssd'
+  # Container name
+  var-container:                                                    'ctr-ms-oc-ne-consulta-conveniobeneficiodiagnosticos-ssd'
+  # HPA name
+  var-hpa:                                                          'hpa-ms-oc-ne-consulta-conveniobeneficiodiagnosticos-ssd'
+  # Port where the service runs
+  var-port:                                                         '9000'
+  # Request CPU (POD)
+  var-cpuRequests:                                                  '250m'
+  # Limits CPU (POD)
+  var-memoryRequests:                                               '512Mi'
+  # Limits Memory (POD)
+  var-cpuLimits:                                                    '500m'
+  # Request Memory (POD)
+  var-memoryLimits:                                                 '1Gi'

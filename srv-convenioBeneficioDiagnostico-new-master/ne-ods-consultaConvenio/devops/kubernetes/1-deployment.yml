@@ -1,0 +1,40 @@
+apiVersion : apps/v1
+kind: Deployment
+metadata:
+  name: #{var-deployment}#
+  namespace: #{var-namespace}#
+  labels:
+    app: #{var-deployment}#
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: #{var-pod}#
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        updateTimestampDockerImage: "#{var-buildTag-runNumber}#"
+      labels:
+        app: #{var-pod}#
+    spec:
+      containers:
+        - name: #{var-container}#
+          image: #{var-dockerRegistry-servername}#/#{var-imageRepository-name}#:#{var-buildTag-latest}#
+          ports:
+           - name: http
+             containerPort: #{var-app-port}#
+             protocol: TCP
+          resources:
+            requests:
+              cpu: #{var-cpuRequests}#
+              memory: #{var-memoryRequests}#
+            limits:
+              cpu: #{var-cpuLimits}#
+              memory: #{var-memoryLimits}#
+          imagePullPolicy: Always

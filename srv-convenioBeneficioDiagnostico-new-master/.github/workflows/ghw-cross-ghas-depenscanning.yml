@@ -1,0 +1,26 @@
+name: gha-cross-ghas-dependency-scanning
+
+on:
+  pull_request:
+    branches: [desa, test, prod]
+  push:
+    branches: [desa, test, prod]
+
+permissions:
+  security-events: write
+  contents: write
+  packages: read
+  actions: read
+  pull-requests: write
+
+jobs:
+  call-nodejs-review:
+    name: job-tp-trg-depenscanning
+    uses: org-all-coreDevSecOps/tmp-gh-all-ghas-ApplyLicenseAutomation/.github/workflows/ghw-mdl-ds-dependabot.yml@latest
+    with:
+      node_version: "22.11.0"
+      principal_folder: ${{ vars.VAR_REPO_PRINCIPAL_PATH }}
+      target_branch: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref_name }}
+    secrets:
+      GHAS_GH_TOKEN: ${{ secrets.SEC_ORG_ALL_GHAS_TOKEN  }}
+

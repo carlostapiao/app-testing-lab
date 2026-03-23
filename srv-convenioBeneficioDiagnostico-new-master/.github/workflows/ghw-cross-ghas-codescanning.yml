@@ -1,0 +1,30 @@
+name: gha-cross-ghas-codescanning
+
+on:
+  push:
+    branches: [ desa, test, prod ]
+    paths-ignore:
+     - '.github/**'
+     - 'devops/**'
+  pull_request:
+    branches: [ desa, test, prod ]
+    paths-ignore:
+     - '.github/**'
+     - 'devops/**'
+
+permissions:
+  security-events: write
+  contents: read
+  packages: read
+  actions: read
+
+jobs:
+  code-scanning:
+    name: job-tp-trg-codescanning
+    uses: org-all-coreDevSecOps/tmp-gh-all-ghas-ApplyLicenseAutomation/.github/workflows/ghw-rtr-cs-router.yml@latest
+    with:
+      principal_folder: ${{ vars.VAR_REPO_PRINCIPAL_PATH }}
+      repository_type: frontend/backend
+      target_branch: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref_name }}
+    secrets:
+      GHAS_GH_TOKEN: ${{ secrets.SEC_ORG_ALL_GHAS_TOKEN }}

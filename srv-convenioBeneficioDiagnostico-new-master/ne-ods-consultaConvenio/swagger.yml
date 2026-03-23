@@ -1,0 +1,1159 @@
+openapi: 3.0.3
+info:
+  title: api-oc-ne-consulta-convenioBeneficioDiagnosticos-ssd
+  description: API para la consulta de convenios de beneficio y diagnósticos.
+  version: 1.0.0
+servers:
+  - url: http://localhost:4040/ms-ne-consulta-convenioBeneficioDiagnosticos-ssd/convenios-beneficio-diagnostico/v1.0.0
+    description: Servidor Local
+  - url: https://apim-eu1-border-service-desa.azure-api.net/ne-consulta-convenioBeneficioDiagnosticos-ssd/convenios-beneficio-diagnostico/v1.0.0
+    description: Servidor de Desarrollo
+  - url: https://apim-eu1-border-services-test.azure-api.net/ne-consulta-convenioBeneficioDiagnosticos-ssd/convenios-beneficio-diagnostico/v1.0.0
+    description: Servidor de Test
+  - url: https://apim-eu1-border-services-prd.azure-api.net/ne-consulta-convenioBeneficioDiagnosticos-ssd/convenios-beneficio-diagnostico/v1.0.0
+    description: Servidor de Producción
+
+security:
+  - api_key:
+      - required
+
+tags:
+  - name: Beneficios
+    description: Operaciones relacionadas con beneficios
+  - name: Diagnósticos
+    description: Operaciones relacionadas con diagnósticos
+    
+paths:
+  /beneficios:
+    post:
+      tags:
+        - Beneficios
+      summary: Consulta de beneficios
+      description: |
+        Listado de beneficios con paginación keyset. **Al menos un filtro requerido** (codCompania, codSistema, codTipoCobertura, codSubtipoCobertura o estRegistro). codSubtipoCobertura se mapea a subtipoCobertura en BD. Si se define un filtro no debe estar vacío.
+
+        **Seguridad:**
+        - Sanitización automática de entrada habilitada
+        - Validación de formato y estructura de datos
+
+        **Filtros (al menos uno requerido):** codCompania, codSistema, codTipoCobertura, codSubtipoCobertura, estRegistro
+
+        **Paginación keyset:** pagination.limit (1-1000, por defecto 1000), pagination.cursor (nextCursor/previousCursor de la respuesta anterior).
+      operationId: queryBenefits
+      security:
+        - api_key:
+            - required
+      parameters:
+        - $ref: '#/components/parameters/X-Correlation-Id'
+        - $ref: '#/components/parameters/X-Request-Id'
+        - $ref: '#/components/parameters/Nombre-Aplicacion'
+        - $ref: '#/components/parameters/Proceso-Negocio'
+        - $ref: '#/components/parameters/Usuario-Aplicacion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BenefitSearchRequest'
+            examples:
+              filtrosSoportados:
+                summary: Filtros soportados (Alpamayo)
+                value:
+                  filters:
+                    codCompania: '20002'
+                    codSistema: 'NS'
+                    codTipoCobertura: '4'
+                    codSubtipoCobertura: '100'
+                    estRegistro: 'V'
+                  pagination:
+                    limit: 10
+              sinFiltros:
+                summary: Sin filtros (Error 400)
+                value:
+                  pagination:
+                    limit: 10
+              cursorInvalido:
+                summary: Cursor inválido (Error 400)
+                value:
+                  filters:
+                    codCompania: '20002'
+                    codSistema: 'NS'
+                  pagination:
+                    limit: 10
+                    cursor: 'invalid-cursor'
+              primeraPagina:
+                summary: Primera página sin cursor
+                value:
+                  filters:
+                    codCompania: '20002'
+                    codSistema: 'NS'
+                  pagination:
+                    limit: 10
+              paginaSiguiente:
+                summary: Página siguiente con nextCursor
+                value:
+                  filters:
+                    codCompania: '20002'
+                    codSistema: 'NS'
+                  pagination:
+                    limit: 10
+                    cursor: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IkEwOCIsImRpcmVjdGlvbiI6Im5leHQiLCJ0aW1lc3RhbXAiOjE3NzA4MzMxMTYsImlhdCI6MTc3MDgyOTUxNiwiZXhwIjoxNzcwODMzMTE2fQ.wqFSxM8rN3ie6UWXORxdCoBLQJZ_rruOIFAj0E6Bc3U'
+              paginaVacia:
+                summary: Página vacía (sin resultados)
+                value:
+                  filters:
+                    codCompania: '99999'
+                    codSistema: 'XX'
+                  pagination:
+                    limit: 10
+      responses:
+        '200':
+          description: Lista de beneficios encontrados
+          headers:
+            X-Correlation-Id:
+              description: Identificador de la transacción
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BenefitSearchResponse'
+              examples:
+                filtrosSoportados:
+                  summary: Filtros soportados - respuesta exitosa
+                  value:
+                    data:
+                      - codCompania: '20002'
+                        codSistema: 'NS'
+                        codTipoCobertura: '4'
+                        codSubTipoCobertura: '100'
+                        codBeneficio: 'A00'
+                        desBeneficio: 'AMBULATORIO'
+                        estRegistro: 'V'
+                    meta:
+                      itemCount: 1
+                      pageSize: 10
+                      hasNextPage: false
+                      hasPreviousPage: false
+                    cursors:
+                      nextCursor: null
+                      previousCursor: null
+                primeraPagina:
+                  summary: Primera página sin cursor
+                  value:
+                    data:
+                      - codCompania: '20002'
+                        codSistema: 'NS'
+                        codTipoCobertura: null
+                        codSubTipoCobertura: null
+                        codBeneficio: '999'
+                        desBeneficio: 'BENEFICIO DE PRUEBA'
+                        estRegistro: 'V'
+                      - codCompania: '20002'
+                        codSistema: 'NS'
+                        codTipoCobertura: '4'
+                        codSubTipoCobertura: '100'
+                        codBeneficio: 'A00'
+                        desBeneficio: 'AMBULATORIO'
+                        estRegistro: 'V'
+                    meta:
+                      itemCount: 10
+                      pageSize: 10
+                      hasNextPage: true
+                      hasPreviousPage: false
+                    cursors:
+                      nextCursor: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IkEwOCIsImRpcmVjdGlvbiI6Im5leHQiLCJ0aW1lc3RhbXAiOjE3NzA4MzMxMTYsImlhdCI6MTc3MDgyOTUxNiwiZXhwIjoxNzcwODMzMTE2fQ.wqFSxM8rN3ie6UWXORxdCoBLQJZ_rruOIFAj0E6Bc3U'
+                      previousCursor: null
+                paginaSiguiente:
+                  summary: Página siguiente con nextCursor
+                  value:
+                    data:
+                      - codCompania: '20002'
+                        codSistema: 'NS'
+                        codTipoCobertura: '2'
+                        codSubTipoCobertura: null
+                        codBeneficio: 'A09'
+                        desBeneficio: 'MEDICO EN PLANTA ENFERMEDAD CRÓNICO'
+                        estRegistro: 'A'
+                    meta:
+                      itemCount: 10
+                      pageSize: 10
+                      hasNextPage: true
+                      hasPreviousPage: true
+                    cursors:
+                      nextCursor: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IkExOCIsImRpcmVjdGlvbiI6Im5leHQiLCJ0aW1lc3RhbXAiOjE3NzA4MzMxNjR9.example'
+                      previousCursor: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IkEwOSIsImRpcmVjdGlvbiI6InByZXYiLCJ0aW1lc3RhbXAiOjE3NzA4MzMxNjR9.example'
+                paginaVacia:
+                  summary: Página vacía (sin resultados)
+                  value:
+                    data: []
+                    meta:
+                      itemCount: 0
+                      pageSize: 10
+                      hasNextPage: false
+                      hasPreviousPage: false
+                    cursors:
+                      nextCursor: null
+                      previousCursor: null
+        '400':
+          description: Solicitud inválida
+          content:
+            application/json:
+              examples:
+                sinFiltros:
+                  summary: Sin filtros (Error 400)
+                  value:
+                    codigo: 'F_NEG_001'
+                    mensaje: 'Request incorrecto'
+                    descripcion: 'El request enviado no corresponde al especificado en el OpenAPI'
+                    detalle:
+                      - campo: filters
+                        error: "El campo 'filters' es requerido"
+                      - campo: filters
+                        error: 'Debe proporcionar al menos un filtro: codCompania, codSistema, codTipoCobertura, codSubtipoCobertura o estRegistro. Pagination (limit, cursor) no cuenta como filtro.'
+                cursorInvalido:
+                  summary: Cursor inválido (Error 400)
+                  value:
+                    codigo: 'F_NEG_001'
+                    mensaje: 'Request incorrecto'
+                    descripcion: 'El request enviado no corresponde al especificado en el OpenAPI'
+                    detalle:
+                      - campo: cursor
+                        error: 'El cursor proporcionado no es válido o ha sido modificado'
+        '500':
+          description: Error interno del servidor
+
+  /diagnosticos:
+    post:
+      tags:
+        - Diagnósticos
+      summary: Consulta de diagnósticos
+      description: |
+        Listado de diagnósticos con paginación keyset. codDiagnostico obligatorio (array no vacío, máx. 1000 elementos). estRegistro y codSistema opcionales; si se definen no deben estar vacíos.
+
+        **Seguridad:**
+        - Sanitización automática de entrada habilitada
+        - Validación de formato y estructura de datos
+
+        **Filtros:** codDiagnostico (obligatorio), estRegistro, codSistema (opcionales)
+
+        **Paginación keyset:** pagination.limit (1-1000, por defecto 1000), pagination.cursor (nextCursor/previousCursor de la respuesta anterior).
+      operationId: queryDiagnostics
+      security:
+        - api_key:
+            - required
+      parameters:
+        - $ref: '#/components/parameters/X-Correlation-Id'
+        - $ref: '#/components/parameters/X-Request-Id'
+        - $ref: '#/components/parameters/Nombre-Aplicacion'
+        - $ref: '#/components/parameters/Proceso-Negocio'
+        - $ref: '#/components/parameters/Usuario-Aplicacion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiagnosticSearchRequest'
+            examples:
+              filtrosSoportados:
+                summary: Filtros soportados (Alpamayo)
+                value:
+                  filters:
+                    codDiagnostico:
+                      - 'A001'
+                      - 'B002'
+                    estRegistro: 'V'
+                    codSistema: 'NS'
+                  pagination:
+                    limit: 10
+              sinFiltros:
+                summary: Sin filtros (Error 400)
+                value:
+                  pagination:
+                    limit: 10
+              cursorInvalido:
+                summary: Cursor inválido (Error 400)
+                value:
+                  filters:
+                    codDiagnostico:
+                      - 'A001'
+                      - 'B002'
+                    estRegistro: 'V'
+                    codSistema: 'NS'
+                  pagination:
+                    limit: 10
+                    cursor: 'invalid-cursor'
+              primeraPagina:
+                summary: Primera página sin cursor
+                value:
+                  filters:
+                    codDiagnostico:
+                      - 'A001'
+                      - 'B002'
+                    estRegistro: 'V'
+                    codSistema: 'NS'
+                  pagination:
+                    limit: 1
+              paginaSiguiente:
+                summary: Página siguiente con nextCursor
+                value:
+                  filters:
+                    codDiagnostico:
+                      - 'A001'
+                      - 'B002'
+                    estRegistro: 'V'
+                    codSistema: 'NS'
+                  pagination:
+                    limit: 1
+                    cursor: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IkEwMDEiLCJkaXJlY3Rpb24iOiJuZXh0IiwidGltZXN0YW1wIjoxNzcwODQyNjcxLCJpYXQiOjE3NzA4MzkwNzEsImV4cCI6MTc3MDg0MjY3MX0.uAWa3d18F06kiqu14zObvdBQML_nvagegdf55LU7F68'
+              paginaVacia:
+                summary: Página vacía (sin resultados)
+                value:
+                  filters:
+                    codDiagnostico:
+                      - '9999'
+                    estRegistro: 'V'
+                    codSistema: 'NS'
+                  pagination:
+                    limit: 1
+                    cursor: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IkEwMDEiLCJkaXJlY3Rpb24iOiJuZXh0IiwidGltZXN0YW1wIjoxNzcwODQyNjcxfQ.example'
+      responses:
+        '200':
+          description: Lista de diagnósticos encontrados
+          headers:
+            X-Correlation-Id:
+              description: Identificador de la transacción
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiagnosticSearchResponse'
+              examples:
+                filtrosSoportados:
+                  summary: Filtros soportados - respuesta exitosa
+                  value:
+                    data:
+                      - codDiagnostico: 'A001'
+                        desDiagnostico: 'COLERA DEBIDO A VIBRIO CHOLERAE O1, BIOTIPO EL TOR'
+                        estRegistro: 'V'
+                        codSistema: 'NS'
+                      - codDiagnostico: 'B002'
+                        desDiagnostico: 'DOLOR VASCULAR'
+                        estRegistro: 'V'
+                        codSistema: 'NS'
+                    meta:
+                      itemCount: 2
+                      pageSize: 10
+                      hasNextPage: false
+                      hasPreviousPage: false
+                    cursors:
+                      nextCursor: null
+                      previousCursor: null
+                primeraPagina:
+                  summary: Primera página sin cursor
+                  value:
+                    data:
+                      - codDiagnostico: 'A001'
+                        desDiagnostico: 'COLERA DEBIDO A VIBRIO CHOLERAE O1, BIOTIPO EL TOR'
+                        estRegistro: 'V'
+                        codSistema: 'NS'
+                    meta:
+                      itemCount: 1
+                      pageSize: 1
+                      hasNextPage: true
+                      hasPreviousPage: false
+                    cursors:
+                      nextCursor: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IkEwMDEiLCJkaXJlY3Rpb24iOiJuZXh0IiwidGltZXN0YW1wIjoxNzcwODQyNjcxfQ.example'
+                      previousCursor: null
+                paginaSiguiente:
+                  summary: Página siguiente con nextCursor
+                  value:
+                    data:
+                      - codDiagnostico: 'B002'
+                        desDiagnostico: 'DOLOR VASCULAR'
+                        estRegistro: 'V'
+                        codSistema: 'NS'
+                    meta:
+                      itemCount: 1
+                      pageSize: 1
+                      hasNextPage: false
+                      hasPreviousPage: true
+                    cursors:
+                      nextCursor: null
+                      previousCursor: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IkIwMDIiLCJkaXJlY3Rpb24iOiJwcmV2IiwidGltZXN0YW1wIjoxNzcwODQyNzA3fQ.example'
+                paginaVacia:
+                  summary: Página vacía (sin resultados)
+                  value:
+                    data: []
+                    meta:
+                      itemCount: 0
+                      pageSize: 1
+                      hasNextPage: false
+                      hasPreviousPage: false
+                    cursors:
+                      nextCursor: null
+                      previousCursor: null
+        '400':
+          description: Solicitud inválida
+          content:
+            application/json:
+              examples:
+                sinFiltros:
+                  summary: Sin filtros (Error 400)
+                  value:
+                    codigo: 'F_NEG_001'
+                    mensaje: 'Request incorrecto'
+                    descripcion: 'El request enviado no corresponde al especificado en el OpenAPI'
+                    detalle:
+                      - campo: filters
+                        error: 'Debe proporcionar codDiagnostico (array no vacío). estRegistro y codSistema son opcionales. Pagination (limit, cursor) no cuenta como filtro.'
+                cursorInvalido:
+                  summary: Cursor inválido (Error 400)
+                  value:
+                    codigo: 'F_NEG_001'
+                    mensaje: 'Request incorrecto'
+                    descripcion: 'El request enviado no corresponde al especificado en el OpenAPI'
+                    detalle:
+                      - campo: cursor
+                        error: 'El cursor proporcionado no es válido o ha sido modificado'
+        '500':
+          description: Error interno del servidor
+
+  /diagnosticos/beneficios:
+    post:
+      tags:
+        - Diagnósticos
+      summary: Consulta diagnósticos-beneficios
+      description: |
+        Listado de relaciones diagnóstico-beneficio con datos de diagnóstico y beneficio. LEFT JOIN a Mae_Beneficio (datos beneficio pueden ser NULL), INNER JOIN a Mae_Diagnostico.
+
+        **Filtros (al menos uno requerido):** codSistemaDiagnosticoBeneficio, codDiagnostico (array), codBeneficio, estDiagnosticoBeneficio
+
+        **Paginación keyset:** pagination.limit (1-1000, por defecto 1000), pagination.cursor (nextCursor/previousCursor de la respuesta anterior).
+      operationId: queryDiagnosticBenefits
+      security:
+        - api_key:
+            - required
+      parameters:
+        - $ref: '#/components/parameters/X-Correlation-Id'
+        - $ref: '#/components/parameters/X-Request-Id'
+        - $ref: '#/components/parameters/Nombre-Aplicacion'
+        - $ref: '#/components/parameters/Proceso-Negocio'
+        - $ref: '#/components/parameters/Usuario-Aplicacion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiagnosticBenefitSearchRequest'
+            examples:
+              filtrosSoportados:
+                summary: Filtros soportados (Alpamayo)
+                value:
+                  filters:
+                    codSistemaDiagnosticoBeneficio: 'NS'
+                    codDiagnostico:
+                      - 'H400'
+                      - 'H401'
+                      - 'H402'
+                      - 'H403'
+                    codBeneficio: 'L09'
+                    estDiagnosticoBeneficio: 'V'
+                  pagination:
+                    limit: 10
+              sinFiltros:
+                summary: Sin filtros (Error 400)
+                value:
+                  pagination:
+                    limit: 10
+              cursorInvalido:
+                summary: Cursor inválido (Error 400)
+                value:
+                  filters:
+                    codSistemaDiagnosticoBeneficio: 'NS'
+                    codDiagnostico:
+                      - 'H400'
+                      - 'H401'
+                      - 'H402'
+                      - 'H403'
+                    codBeneficio: 'L09'
+                    estDiagnosticoBeneficio: 'V'
+                  pagination:
+                    limit: 10
+                    cursor: 'invalid-cursor'
+              primeraPagina:
+                summary: Primera página sin cursor
+                value:
+                  filters:
+                    codSistemaDiagnosticoBeneficio: 'NS'
+                    codDiagnostico:
+                      - 'H400'
+                      - 'H401'
+                      - 'H402'
+                      - 'H403'
+                    codBeneficio: 'L09'
+                    estDiagnosticoBeneficio: 'V'
+                  pagination:
+                    limit: 2
+              paginaSiguiente:
+                summary: Página siguiente con nextCursor
+                value:
+                  filters:
+                    codSistemaDiagnosticoBeneficio: 'NS'
+                    codDiagnostico:
+                      - 'H400'
+                      - 'H401'
+                      - 'H402'
+                      - 'H403'
+                    codBeneficio: 'L09'
+                    estDiagnosticoBeneficio: 'V'
+                  pagination:
+                    limit: 2
+                    cursor: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ikg0MDFMMDkiLCJkaXJlY3Rpb24iOiJuZXh0In0.example'
+              paginaVacia:
+                summary: Página vacía (sin resultados)
+                value:
+                  filters:
+                    codSistemaDiagnosticoBeneficio: 'NS'
+                    codDiagnostico:
+                      - 'ZZZ999'
+                    codBeneficio: '999'
+                    estDiagnosticoBeneficio: 'V'
+                  pagination:
+                    limit: 10
+      responses:
+        '200':
+          description: Lista de diagnósticos-beneficios
+          headers:
+            X-Correlation-Id:
+              description: Identificador de la transacción
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiagnosticBenefitSearchResponse'
+              examples:
+                filtrosSoportados:
+                  summary: Filtros soportados - respuesta exitosa
+                  value:
+                    data:
+                      - codSistemaDiagnosticoBeneficio: 'NS'
+                        estDiagnosticoBeneficio: 'V'
+                        codSistemaDiagnostico: 'NS'
+                        codDiagnostico: 'H400'
+                        desDiagnostico: 'SOSPECHA DE GLAUCOMA'
+                        estDiagnostico: 'V'
+                        codSistemaBeneficio: 'NS'
+                        codBeneficio: 'L09'
+                        desBeneficio: 'OFTALMOLOGICO AMBULATORIO TRATAMIENTO'
+                        estBeneficio: 'A'
+                      - codSistemaDiagnosticoBeneficio: 'NS'
+                        estDiagnosticoBeneficio: 'V'
+                        codSistemaDiagnostico: 'NS'
+                        codDiagnostico: 'H401'
+                        desDiagnostico: 'GLAUCOMA PRIMARIO DE ANGULO ABIERTO'
+                        estDiagnostico: 'V'
+                        codSistemaBeneficio: 'NS'
+                        codBeneficio: 'L09'
+                        desBeneficio: 'OFTALMOLOGICO AMBULATORIO TRATAMIENTO'
+                        estBeneficio: 'A'
+                      - codSistemaDiagnosticoBeneficio: 'NS'
+                        estDiagnosticoBeneficio: 'V'
+                        codSistemaDiagnostico: 'NS'
+                        codDiagnostico: 'H402'
+                        desDiagnostico: 'GLAUCOMA PRIMARIO DE ANGULO CERRADO'
+                        estDiagnostico: 'V'
+                        codSistemaBeneficio: 'NS'
+                        codBeneficio: 'L09'
+                        desBeneficio: 'OFTALMOLOGICO AMBULATORIO TRATAMIENTO'
+                        estBeneficio: 'A'
+                      - codSistemaDiagnosticoBeneficio: 'NS'
+                        estDiagnosticoBeneficio: 'V'
+                        codSistemaDiagnostico: 'NS'
+                        codDiagnostico: 'H403'
+                        desDiagnostico: 'GLAUCOMA SECUNDARIO A TRAUMATISMO OCULAR'
+                        estDiagnostico: 'V'
+                        codSistemaBeneficio: 'NS'
+                        codBeneficio: 'L09'
+                        desBeneficio: 'OFTALMOLOGICO AMBULATORIO TRATAMIENTO'
+                        estBeneficio: 'A'
+                    meta:
+                      itemCount: 4
+                      pageSize: 10
+                      hasNextPage: false
+                      hasPreviousPage: false
+                    cursors:
+                      nextCursor: null
+                      previousCursor: null
+                primeraPagina:
+                  summary: Primera página sin cursor
+                  value:
+                    data:
+                      - codSistemaDiagnosticoBeneficio: 'NS'
+                        estDiagnosticoBeneficio: 'V'
+                        codSistemaDiagnostico: 'NS'
+                        codDiagnostico: 'H400'
+                        desDiagnostico: 'SOSPECHA DE GLAUCOMA'
+                        estDiagnostico: 'V'
+                        codSistemaBeneficio: 'NS'
+                        codBeneficio: 'L09'
+                        desBeneficio: 'OFTALMOLOGICO AMBULATORIO TRATAMIENTO'
+                        estBeneficio: 'A'
+                      - codSistemaDiagnosticoBeneficio: 'NS'
+                        estDiagnosticoBeneficio: 'V'
+                        codSistemaDiagnostico: 'NS'
+                        codDiagnostico: 'H401'
+                        desDiagnostico: 'GLAUCOMA PRIMARIO DE ANGULO ABIERTO'
+                        estDiagnostico: 'V'
+                        codSistemaBeneficio: 'NS'
+                        codBeneficio: 'L09'
+                        desBeneficio: 'OFTALMOLOGICO AMBULATORIO TRATAMIENTO'
+                        estBeneficio: 'A'
+                    meta:
+                      itemCount: 2
+                      pageSize: 2
+                      hasNextPage: true
+                      hasPreviousPage: false
+                    cursors:
+                      nextCursor: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ikg0MDFMMDkiLCJkaXJlY3Rpb24iOiJuZXh0In0.example'
+                      previousCursor: null
+                paginaSiguiente:
+                  summary: Página siguiente con nextCursor
+                  value:
+                    data:
+                      - codSistemaDiagnosticoBeneficio: 'NS'
+                        estDiagnosticoBeneficio: 'V'
+                        codSistemaDiagnostico: 'NS'
+                        codDiagnostico: 'H402'
+                        desDiagnostico: 'GLAUCOMA PRIMARIO DE ANGULO CERRADO'
+                        estDiagnostico: 'V'
+                        codSistemaBeneficio: 'NS'
+                        codBeneficio: 'L09'
+                        desBeneficio: 'OFTALMOLOGICO AMBULATORIO TRATAMIENTO'
+                        estBeneficio: 'A'
+                      - codSistemaDiagnosticoBeneficio: 'NS'
+                        estDiagnosticoBeneficio: 'V'
+                        codSistemaDiagnostico: 'NS'
+                        codDiagnostico: 'H403'
+                        desDiagnostico: 'GLAUCOMA SECUNDARIO A TRAUMATISMO OCULAR'
+                        estDiagnostico: 'V'
+                        codSistemaBeneficio: 'NS'
+                        codBeneficio: 'L09'
+                        desBeneficio: 'OFTALMOLOGICO AMBULATORIO TRATAMIENTO'
+                        estBeneficio: 'A'
+                    meta:
+                      itemCount: 2
+                      pageSize: 2
+                      hasNextPage: false
+                      hasPreviousPage: true
+                    cursors:
+                      nextCursor: null
+                      previousCursor: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ikg0MDJMMDkiLCJkaXJlY3Rpb24iOiJwcmV2In0.example'
+                paginaVacia:
+                  summary: Página vacía (sin resultados)
+                  value:
+                    data: []
+                    meta:
+                      itemCount: 0
+                      pageSize: 10
+                      hasNextPage: false
+                      hasPreviousPage: false
+                    cursors:
+                      nextCursor: null
+                      previousCursor: null
+        '400':
+          description: Solicitud inválida
+          content:
+            application/json:
+              examples:
+                sinFiltros:
+                  summary: Sin filtros (Error 400)
+                  value:
+                    codigo: 'F_NEG_001'
+                    mensaje: 'Request incorrecto'
+                    descripcion: 'El request enviado no corresponde al especificado en el OpenAPI'
+                    detalle:
+                      - campo: filters
+                        error: "El campo 'filters' es requerido"
+                      - campo: filters
+                        error: 'Debe proporcionar al menos un filtro: codSistemaDiagnosticoBeneficio, codDiagnostico, codBeneficio o estDiagnosticoBeneficio. Pagination (limit, cursor) no cuenta como filtro.'
+                cursorInvalido:
+                  summary: Cursor inválido (Error 400)
+                  value:
+                    codigo: 'F_NEG_001'
+                    mensaje: 'Request incorrecto'
+                    descripcion: 'El request enviado no corresponde al especificado en el OpenAPI'
+                    detalle:
+                      - campo: cursor
+                        error: 'El cursor proporcionado no es válido o ha sido modificado'
+        '500':
+          description: Error interno del servidor
+
+components:
+  securitySchemes:
+    api_key:
+      type: apiKey
+      name: ocp-apim-subscription-key
+      in: header
+      description: API Key para autenticación
+
+  parameters:
+    X-Correlation-Id:
+      name: x-correlation-id
+      in: header
+      required: true
+      description: Identificador único de la transacción (UUID v4)
+      schema:
+        type: string
+        format: uuid
+    X-Request-Id:
+      name: x-request-id
+      in: header
+      required: true
+      description: Identificador único de la petición (UUID v4)
+      schema:
+        type: string
+        format: uuid
+    Nombre-Aplicacion:
+      name: nombreaplicacion
+      in: header
+      required: true
+      description: Nombre de la aplicación que realiza la petición
+      schema:
+        type: string
+    Proceso-Negocio:
+      name: procesonegocio
+      in: header
+      required: true
+      description: Proceso de negocio asociado a la petición
+      schema:
+        type: string
+    Usuario-Aplicacion:
+      name: usuarioaplicacion
+      in: header
+      required: true
+      description: Usuario de la aplicación que realiza la petición
+      schema:
+        type: string
+
+  schemas:
+    BenefitFilters:
+      type: object
+      description: Filtros de consulta de beneficios. Al menos uno requerido (codCompania, codSistema, codTipoCobertura, codSubtipoCobertura o estRegistro); si se definen no deben estar vacíos.
+      properties:
+        codCompania:
+          type: string
+          description: Código de compañía (codCompania)
+          maxLength: 5
+          example: '20002'
+        codSistema:
+          type: string
+          description: Código de sistema (codSistema)
+          maxLength: 5
+          example: 'NS'
+        codTipoCobertura:
+          type: string
+          description: Código tipo de cobertura (codTipoCobertura)
+          maxLength: 60
+          example: '4'
+        codSubtipoCobertura:
+          type: string
+          description: Código subtipo de cobertura (codSubtipoCobertura)
+          maxLength: 4
+          example: '100'
+        estRegistro:
+          type: string
+          description: Estado de registro (estRegistro)
+          maxLength: 5
+          example: 'V'
+
+    BenefitPagination:
+      type: object
+      description: Paginación keyset para beneficios (limit 1-1000, cursor opcional).
+      properties:
+        limit:
+          type: integer
+          description: Registros por página (máximo 1000)
+          minimum: 1
+          maximum: 1000
+          default: 1000
+          example: 1000
+        cursor:
+          type: string
+          description: Cursor keyset (nextCursor o previousCursor de la respuesta anterior)
+          example: 'eyJ...'
+
+    BenefitSearchRequest:
+      type: object
+      required:
+        - filters
+      description: Body para consulta de beneficios (POST /beneficios). Debe proporcionar al menos un filtro (distinto de la paginación). Paginación keyset.
+      properties:
+        filters:
+          $ref: '#/components/schemas/BenefitFilters'
+        pagination:
+          $ref: '#/components/schemas/BenefitPagination'
+
+    BenefitSummary:
+      type: object
+      description: DTO de un ítem de beneficio en la respuesta.
+      properties:
+        codCompania:
+          type: string
+          nullable: true
+          description: Código compañía
+          example: '20002'
+        codSistema:
+          type: string
+          nullable: true
+          description: Código sistema
+          example: 'NS'
+        codTipoCobertura:
+          type: string
+          nullable: true
+          description: Código tipo cobertura
+          example: '4'
+        codSubTipoCobertura:
+          type: string
+          nullable: true
+          description: Código subtipo cobertura
+          example: '100'
+        codBeneficio:
+          type: string
+          nullable: true
+          description: Código beneficio
+        desBeneficio:
+          type: string
+          nullable: true
+          description: Descripción beneficio
+        estRegistro:
+          type: string
+          nullable: true
+          description: Estado registro
+          example: 'V'
+
+    MetaBenefitSummary:
+      type: object
+      description: Metadata de paginación keyset.
+      properties:
+        itemCount:
+          type: integer
+          description: Elementos en esta página
+          example: 10
+        pageSize:
+          type: integer
+          description: Tamaño de página solicitado
+          example: 1000
+        hasNextPage:
+          type: boolean
+          description: Hay más páginas siguientes
+          example: true
+        hasPreviousPage:
+          type: boolean
+          description: Hay páginas anteriores
+          example: false
+
+    CursorsBenefitSummary:
+      type: object
+      description: Cursores keyset.
+      properties:
+        nextCursor:
+          type: string
+          nullable: true
+          description: Cursor siguiente
+        previousCursor:
+          type: string
+          nullable: true
+          description: Cursor anterior
+
+    BenefitSearchResponse:
+      type: object
+      description: Respuesta de consulta de beneficios (POST /beneficios) con paginación keyset.
+      properties:
+        data:
+          type: array
+          description: Lista de beneficios
+          items:
+            $ref: '#/components/schemas/BenefitSummary'
+        meta:
+          $ref: '#/components/schemas/MetaBenefitSummary'
+        cursors:
+          $ref: '#/components/schemas/CursorsBenefitSummary'
+
+    DiagnosticFilters:
+      type: object
+      required:
+        - codDiagnostico
+      description: 'Filtros de consulta de diagnósticos. codDiagnostico: obligatorio (array no vacío, máx. 1000 elementos). estRegistro y codSistema: opcionales; si se definen no deben estar vacíos.'
+      properties:
+        codDiagnostico:
+          type: array
+          description: Códigos de diagnóstico (codDiagnostico). Obligatorio, no vacío (máximo 1000 elementos)
+          maxItems: 1000
+          minItems: 1
+          items:
+            type: string
+          example:
+            - 'A001'
+            - 'B002'
+        estRegistro:
+          type: string
+          description: Estado de registro (estRegistro)
+          maxLength: 5
+          example: 'V'
+        codSistema:
+          type: string
+          description: Código de sistema (codSistema)
+          maxLength: 5
+          example: 'NS'
+
+    DiagnosticPagination:
+      type: object
+      description: Paginación keyset para diagnósticos (limit 1-1000, cursor opcional).
+      properties:
+        limit:
+          type: integer
+          description: Registros por página (máximo 1000)
+          minimum: 1
+          maximum: 1000
+          default: 1000
+          example: 1000
+        cursor:
+          type: string
+          description: Cursor keyset (nextCursor o previousCursor de la respuesta anterior)
+          example: 'eyJ...'
+
+    DiagnosticSearchRequest:
+      type: object
+      required:
+        - filters
+      description: 'Body para consulta de diagnósticos (POST /diagnosticos). Filtros: codDiagnostico obligatorio (array no vacío, max 1000), estRegistro y codSistema opcionales. Paginación keyset.'
+      properties:
+        filters:
+          $ref: '#/components/schemas/DiagnosticFilters'
+        pagination:
+          $ref: '#/components/schemas/DiagnosticPagination'
+
+    DiagnosticSummary:
+      type: object
+      description: DTO de un ítem de diagnóstico en la respuesta.
+      properties:
+        codDiagnostico:
+          type: string
+          nullable: true
+          description: Código diagnóstico
+          example: 'A001'
+        desDiagnostico:
+          type: string
+          nullable: true
+          description: Descripción diagnóstico
+        estRegistro:
+          type: string
+          nullable: true
+          description: Estado registro
+          example: 'V'
+        codSistema:
+          type: string
+          nullable: true
+          description: Código sistema
+          example: 'NS'
+
+    MetaDiagnosticSummary:
+      type: object
+      description: Metadata de paginación keyset.
+      properties:
+        itemCount:
+          type: integer
+          description: Elementos en esta página
+          example: 10
+        pageSize:
+          type: integer
+          description: Tamaño de página solicitado
+          example: 1000
+        hasNextPage:
+          type: boolean
+          description: Hay más páginas siguientes
+          example: true
+        hasPreviousPage:
+          type: boolean
+          description: Hay páginas anteriores
+          example: false
+
+    CursorsDiagnosticSummary:
+      type: object
+      description: Cursores keyset.
+      properties:
+        nextCursor:
+          type: string
+          nullable: true
+          description: Cursor siguiente
+        previousCursor:
+          type: string
+          nullable: true
+          description: Cursor anterior
+
+    DiagnosticSearchResponse:
+      type: object
+      description: Respuesta de consulta de diagnósticos (POST /diagnosticos) con paginación keyset.
+      properties:
+        data:
+          type: array
+          description: Lista de diagnósticos
+          items:
+            $ref: '#/components/schemas/DiagnosticSummary'
+        meta:
+          $ref: '#/components/schemas/MetaDiagnosticSummary'
+        cursors:
+          $ref: '#/components/schemas/CursorsDiagnosticSummary'
+
+    DiagnosticBenefitFilters:
+      type: object
+      description: "Filtros para consulta diagnósticos-beneficios (Mae_DiagnosticoBeneficio + Mae_Beneficio + Mae_Diagnostico). Al menos uno requerido: codSistemaDiagnosticoBeneficio, codDiagnostico, codBeneficio o estDiagnosticoBeneficio."
+      properties:
+        codSistemaDiagnosticoBeneficio:
+          type: string
+          description: Código sistema de la relación diagnóstico-beneficio (codSistema en Mae_DiagnosticoBeneficio)
+          maxLength: 5
+          example: 'NS'
+        codDiagnostico:
+          type: array
+          description: Códigos de diagnóstico. Si se define no vacío (máx. 1000)
+          maxItems: 1000
+          minItems: 1
+          items:
+            type: string
+          example:
+            - 'A00'
+            - 'B01'
+        codBeneficio:
+          type: string
+          description: Código beneficio
+          maxLength: 5
+          example: '001'
+        estDiagnosticoBeneficio:
+          type: string
+          description: Estado registro de la relación diagnóstico-beneficio (estDiagnosticoBeneficio)
+          maxLength: 5
+          example: 'V'
+
+    DiagnosticBenefitPagination:
+      type: object
+      description: Paginación keyset para diagnósticos-beneficios.
+      properties:
+        limit:
+          type: integer
+          description: Registros por página (máximo 1000)
+          minimum: 1
+          maximum: 1000
+          default: 1000
+          example: 1000
+        cursor:
+          type: string
+          description: Cursor keyset (nextCursor o previousCursor de la respuesta anterior)
+          example: 'eyJ...'
+
+    DiagnosticBenefitSearchRequest:
+      type: object
+      required:
+        - filters
+      description: Body para POST /diagnosticos/beneficios. Al menos un filtro requerido. Paginación keyset.
+      properties:
+        filters:
+          $ref: '#/components/schemas/DiagnosticBenefitFilters'
+        pagination:
+          $ref: '#/components/schemas/DiagnosticBenefitPagination'
+
+    DiagnosticBenefitSummary:
+      type: object
+      description: 'DTO de un ítem diagnóstico-beneficio según spec: relación + datos diagnóstico + datos beneficio.'
+      properties:
+        codSistemaDiagnosticoBeneficio:
+          type: string
+          nullable: true
+          description: Código sistema relación diagnóstico-beneficio
+        estDiagnosticoBeneficio:
+          type: string
+          nullable: true
+          description: Estado registro relación diagnóstico-beneficio
+        codSistemaDiagnostico:
+          type: string
+          nullable: true
+          description: Código sistema del diagnóstico
+        codDiagnostico:
+          type: string
+          nullable: true
+          description: Código diagnóstico
+        desDiagnostico:
+          type: string
+          nullable: true
+          description: Descripción diagnóstico
+        estDiagnostico:
+          type: string
+          nullable: true
+          description: Estado diagnóstico
+        codSistemaBeneficio:
+          type: string
+          nullable: true
+          description: Código sistema del beneficio
+        codBeneficio:
+          type: string
+          nullable: true
+          description: Código beneficio
+        desBeneficio:
+          type: string
+          nullable: true
+          description: Descripción beneficio
+        estBeneficio:
+          type: string
+          nullable: true
+          description: Estado beneficio
+
+    MetaDiagnosticBenefitSummary:
+      type: object
+      description: Metadata de paginación keyset.
+      properties:
+        itemCount:
+          type: integer
+          description: Elementos en esta página
+          example: 10
+        pageSize:
+          type: integer
+          description: Tamaño de página solicitado
+          example: 1000
+        hasNextPage:
+          type: boolean
+          description: Hay más páginas siguientes
+          example: true
+        hasPreviousPage:
+          type: boolean
+          description: Hay páginas anteriores
+          example: false
+
+    CursorsDiagnosticBenefitSummary:
+      type: object
+      description: Cursores keyset.
+      properties:
+        nextCursor:
+          type: string
+          nullable: true
+          description: Cursor siguiente
+        previousCursor:
+          type: string
+          nullable: true
+          description: Cursor anterior
+
+    DiagnosticBenefitSearchResponse:
+      type: object
+      description: Respuesta de consulta diagnósticos-beneficios (POST /diagnosticos/beneficios) con paginación keyset.
+      properties:
+        data:
+          type: array
+          description: Lista de relaciones diagnóstico-beneficio con datos de diagnóstico y beneficio
+          items:
+            $ref: '#/components/schemas/DiagnosticBenefitSummary'
+        meta:
+          $ref: '#/components/schemas/MetaDiagnosticBenefitSummary'
+        cursors:
+          $ref: '#/components/schemas/CursorsDiagnosticBenefitSummary'

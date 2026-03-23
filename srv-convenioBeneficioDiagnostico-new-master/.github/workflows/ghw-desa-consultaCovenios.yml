@@ -1,0 +1,294 @@
+name: gha-desa-ods-consultaCovenios
+
+on:
+  push:
+    branches:
+      - desa
+  workflow_dispatch:
+    inputs:
+      deploy_option:
+        description: 'Seleccione:'
+        required: true
+        type: choice
+        options:
+          - CI
+          - CI+CD
+
+permissions:
+  contents: write
+  actions: read # Permite leer artefactos
+
+
+jobs:
+  job_vd_checkActor:
+    runs-on: ubuntu-latest
+    outputs:
+      teams: ${{ steps.actorTeams.outputs.teams }}
+    steps:
+      - name: stp-getTeamsfromActor
+        uses: tspascoal/get-user-teams-membership@v2
+        id: actorTeams
+        with:
+          username: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.SEC_ORG_ALL_GITHUB_VALIDATEACTOR }}
+
+  job_ci_buildImage:
+    needs: job_vd_checkActor
+    if: >-
+        (github.ref == 'refs/heads/desa') &&
+        (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && 
+        (
+          contains(needs.job_vd_checkActor.outputs.teams, 'CT-DSO-COEDevSecOps') || 
+          contains(needs.job_vd_checkActor.outputs.teams, 'CT-DSO-ChapterDevSecOps') || 
+          contains(needs.job_vd_checkActor.outputs.teams, 'CT-DSO-ChapterDevSecOpsExternal')
+        )))
+    runs-on: [self-hosted, ghrg-bf-desa-devsecops]
+    steps:
+      # 1 -> Checkout Repo
+      - name: stp-CheckoutRepo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # 2 -> AZ Login
+      - name: stp-LoginAzure
+        run: |
+          az login --service-principal -u ${{ secrets.SEC_ORG_BF_SERVICE_PRINCIPAL_ID_DESA }} -p ${{ secrets.SEC_ORG_BF_SERVICE_PRINCIPAL_SECRET_DESA }} --tenant ${{ secrets.SEC_ORG_ALL_TENANT_ID }}
+
+      # 3 -> Get Sxs From KV - your team [ODS] --------------------------------------------------------
+      - name: stp-GetSxKV-Team
+        run: |
+          # Get Key SXs
+          SXS=(
+            "ClientID-ADB"
+            "SecretID-ADB"
+            "TenantID-ADB"
+            "API-KEY-CONFIG-SERVER"
+          )
+          # Change Subs nss-land-oficinadigital
+          az account set -s ${{ secrets.SEC_ORG_ALL_SUBSCRIPTION_ID_OFICINADIGITAL }}
+          for SX in "${SXS[@]}"; do
+              SX_VALUE=$(az keyvault secret show --vault-name ${{ secrets.SEC_ORG_ALL_KEYVAULT_NAME_DATOSSALUD_DESA }} --name $SX --query "value" -o tsv)
+              echo "::add-mask::$SX_VALUE"
+              echo "$SX=$SX_VALUE" >> $GITHUB_ENV
+          done
+      # ------------------------------------------------------------------------------------  
+      # 4 -> Get YML Values
+      - name: stp-Values
+        run: |
+          echo "// ------------------------------- SET ENVS ------------------------------- //"
+          FILE_YML_DOCKER="${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}/devops/docker/desa/vars.yml"
+          FILE_YML_K8S="${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}/devops/kubernetes/desa/vars.yml"
+          
+          # VALUES .ENV
+          echo "var-kv-ods-desa=${{ secrets.SEC_ORG_ALL_KEYVAULT_NAME_DATOSSALUD_DESA }}" >> $GITHUB_ENV
+
+          # VALUES DOCKER-ACR
+          echo "var-dockerRegistry-servername=$(yq e '.variables.var-dockerRegistry-serverName' "$FILE_YML_DOCKER")" >> $GITHUB_ENV
+          echo "var-dockerRegistry-name=$(yq e '.variables.var-dockerRegistry-name' "$FILE_YML_DOCKER")" >> $GITHUB_ENV
+          echo "var-imageBaseRepository-name=$(yq e '.variables.var-imageBaseRepository-name' "$FILE_YML_DOCKER")" >> $GITHUB_ENV
+          echo "var-imageRepository-name=$(yq e '.variables.var-imageRepository-name' "$FILE_YML_DOCKER")" >> $GITHUB_ENV
+          echo "var-buildImage-path=$(yq e '.variables.var-buildImage-path' "$FILE_YML_DOCKER")" >> $GITHUB_ENV
+          echo "var-buildTag-latest=$(yq e '.variables.var-buildTag-latest' "$FILE_YML_DOCKER")" >> $GITHUB_ENV
+          echo "var-buildTag-runNumber=${{ github.run_number }}" >> $GITHUB_ENV
+          echo "var-app-port=$(yq e '.variables.var-app-port' "$FILE_YML_DOCKER")" >> $GITHUB_ENV
+          
+          # VALUES K8S
+          echo "var-namespace=$(yq e '.variables.var-namespace' "$FILE_YML_K8S")" >> $GITHUB_ENV
+          echo "var-service=$(yq e '.variables.var-service' "$FILE_YML_K8S")" >> $GITHUB_ENV
+          echo "var-deployment=$(yq e '.variables.var-deployment' "$FILE_YML_K8S")" >> $GITHUB_ENV
+          echo "var-pod=$(yq e '.variables.var-pod' "$FILE_YML_K8S")" >> $GITHUB_ENV
+          echo "var-container=$(yq e '.variables.var-container' "$FILE_YML_K8S")" >> $GITHUB_ENV
+          echo "var-hpa=$(yq e '.variables.var-hpa' "$FILE_YML_K8S")" >> $GITHUB_ENV
+          echo "var-port=$(yq e '.variables.var-port' "$FILE_YML_K8S")" >> $GITHUB_ENV
+          echo "var-cpuRequests=$(yq e '.variables.var-cpuRequests' "$FILE_YML_K8S")" >> $GITHUB_ENV
+          echo "var-memoryRequests=$(yq e '.variables.var-memoryRequests' "$FILE_YML_K8S")" >> $GITHUB_ENV
+          echo "var-cpuLimits=$(yq e '.variables.var-cpuLimits' "$FILE_YML_K8S")" >> $GITHUB_ENV
+          echo "var-memoryLimits=$(yq e '.variables.var-memoryLimits' "$FILE_YML_K8S")" >> $GITHUB_ENV
+
+      # 5 -> Replace Tokens en *.ymls
+      - name: stp-ReplaceTokens
+        uses: qetza/replacetokens-action@v1
+        with:
+          token-pattern: 'default'
+          token-prefix: '#{'
+          token-suffix: '}#'
+          sources: |
+            ${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}/environments/.env.${{ vars.VAR_ORG_ALL_ENVIRONMENT_DESA }}
+            ${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}/devops/kubernetes/*.yml
+            ${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}/devops/docker/Dockerfile
+          variables: ${{ toJson(env) }}
+
+      # 6 -> Copy Files
+      - name: stp-CopyFileEnv
+        run: |
+          cd ${{ github.workspace }}
+          # mkdir -v files-cd
+          cp -v ${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}/environments/.env.${{ vars.VAR_ORG_ALL_ENVIRONMENT_DESA }} ${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH}}/.env
+
+      # 7 -> Auth Npmrc
+      - name: stp-authNpmrc
+        run: |
+          cd ${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}
+          echo "registry=https:${{ vars.VAR_ORG_DESA_AZDO_BCK_ARTIFACTS }}" > ~/.npmrc
+          echo "${{ vars.VAR_ORG_DESA_AZDO_BCK_ARTIFACTS }}:_authToken=${{ secrets.SEC_ORG_ALL_AZDO_PAT_TOKEN }}" >> ~/.npmrc
+
+      # 8 -> Init Directory
+      - name: stp-gitInitDirectory
+        run: |
+          cd ${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}
+          git init
+
+      # 10 -> Cache node_modules
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}/node_modules
+          key: ${{ runner.os }}-modules-${{ github.ref_name }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ github.ref_name }}-modules-
+
+      # 11 -> NPM Install
+      - name: stp-NPMInstall
+        run: |
+          cd ${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}
+          export PATH=/usr/local/nodejs/bin:$PATH
+          npm install --verbose
+    
+      # 12 -> NPM Run Build
+      - name: stp-NPMRunBuild
+        run: |
+          cd ${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}
+          export PATH=/usr/local/nodejs/bin:$PATH
+          npm run build
+      
+      # XX -> ValidateWeightPre
+      - name: stp-ValidWeightPreBuild
+        run: |
+          echo "// ******************************  DU -SH TOTAL [WORKSPACE] ****************************** //"
+          ls -al
+          du -sh
+          echo -e " \n"
+          du -sh * .[^.]* | sort -hr
+
+          echo "// ******************************  DU -SH [PPATH] ****************************** //"
+          cd ${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}
+          du -sh
+
+          echo "// ******************************  DU -SH CUSTOM [PPATH] ****************************** //"
+          cd ${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}
+          du -sh * .[^.]* | sort -hr
+
+      # 13 -> Docker B&P
+      - name: stp-DockerBuild&Deploy
+        run: |
+          cd ${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}
+          cp -v ${{ env.var-buildImage-path }}/.dockerignore .
+          ls -al
+          
+          ## Login
+          az acr login --name ${{ env.var-dockerRegistry-name }}
+          
+          ## Build
+          docker build --progress=plain -f ${{ env.var-buildImage-path }}/Dockerfile -t ${{ env.var-imageRepository-name }}:${{ github.run_number }} .
+
+          ## Tageo
+          docker tag ${{ env.var-imageRepository-name }}:${{ github.run_number }} ${{ env.var-dockerRegistry-servername }}/${{ env.var-imageRepository-name }}:${{ github.run_number }}
+          docker tag ${{ env.var-imageRepository-name }}:${{ github.run_number }} ${{ env.var-dockerRegistry-servername }}/${{ env.var-imageRepository-name }}:${{ env.var-buildTag-latest }}
+
+          ## Push
+          docker push ${{ env.var-dockerRegistry-servername }}/${{ env.var-imageRepository-name }}:${{ github.run_number }}
+          docker push ${{ env.var-dockerRegistry-servername }}/${{ env.var-imageRepository-name }}:${{ env.var-buildTag-latest }}
+
+          ## CleanImage
+          docker rmi ${{ env.var-imageRepository-name }}:${{ github.run_number }}
+          docker rmi ${{ env.var-dockerRegistry-servername }}/${{ env.var-imageRepository-name }}:${{ github.run_number }}
+          docker rmi ${{ env.var-dockerRegistry-servername }}/${{ env.var-imageRepository-name }}:${{ env.var-buildTag-latest }}
+
+      # 14 -> Compress Dir
+      - name: stp-compressDir
+        run: |
+          cd ${{ github.workspace }}
+          tar -czvf ${{ vars.VAR_REPO_ARTIFACT_NAME }}.tar.gz ${{ vars.VAR_REPO_PRINCIPAL_PATH }}/devops
+
+      # 15 -> Upload Artifact
+      - name: stp-uploadArtifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ vars.VAR_REPO_ARTIFACT_NAME }}
+          path: ${{ github.workspace }}/${{ vars.VAR_REPO_ARTIFACT_NAME }}.tar.gz
+
+  job_cd_deployImageK8s:
+    needs: job_ci_buildImage
+    if: >-
+        (github.ref == 'refs/heads/desa') &&
+        (github.event_name == 'push' || ((github.event_name == 'workflow_dispatch' && inputs.deploy_option == 'CI+CD') &&
+        (
+          contains(needs.job_vd_checkActor.outputs.teams, 'CT-DSO-COEDevSecOps') || 
+          contains(needs.job_vd_checkActor.outputs.teams, 'CT-DSO-ChapterDevSecOps') || 
+          contains(needs.job_vd_checkActor.outputs.teams, 'CT-DSO-ChapterDevSecOpsExternal')
+        )))
+    runs-on: [self-hosted, ghrg-bf-desa-devsecops]
+    #environment: env-desa-deploymentApproversBF
+    steps:
+      # 1 -> DownloadArtifact
+      - name: stp-DownloadArtifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ vars.VAR_REPO_ARTIFACT_NAME }}
+          path: ${{ github.workspace }} 
+      
+      # 2 -> Descompress Dir
+      - name: stp-decompressDir
+        run: |
+          cd ${{ github.workspace }}
+          tar -xzvf ${{ vars.VAR_REPO_ARTIFACT_NAME}}.tar.gz
+
+      # XX -> ValidatePost
+      - name: stp-ValidFilesPost
+        run: |
+          ls -l ${{ github.workspace }}
+          tree ${{ github.workspace }}
+
+      # 3 -> AZ Login
+      - name: stp-LoginAzure
+        run: |
+          az login --service-principal -u ${{ secrets.SEC_ORG_BF_SERVICE_PRINCIPAL_ID_DESA }} -p ${{ secrets.SEC_ORG_BF_SERVICE_PRINCIPAL_SECRET_DESA }} --tenant ${{ secrets.SEC_ORG_ALL_TENANT_ID }}
+
+      # 4 -> AZ Create Deploy
+      - name: stp-AzCreateDeploy
+        run: |
+          cd ${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}/devops/kubernetes
+          az account set -s ${{ vars.VAR_ORG_ALL_SUBSCRIPTION_INTEGRATION_ID }}
+          az aks get-credentials -g ${{ vars.VAR_ORG_ALL_SUBSCRIPTION_INTEGRA_RG_NAME_DESA }} -n ${{ vars.VAR_ORG_ALL_SUBSCRIPTION_INTEGRA_AKSMC_NAME_DESA }} --overwrite-existing
+          kubelogin convert-kubeconfig -l azurecli
+          kubectl config use-context ${{ vars.VAR_ORG_ALL_SUBSCRIPTION_INTEGRA_AKSMC_NAME_DESA }}
+          kubectl config current-context
+          kubectl apply -f 1-deployment.yml
+
+      # 5 -> AZ Create Svc
+      - name: stp-AzCreateSvc
+        run: |
+          cd ${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}/devops/kubernetes
+          kubectl apply -f 2-services.yml
+
+      # 6 -> AZ Create HPA
+      - name: stp-AzCreateHpa
+        run: |
+          cd ${{ github.workspace }}/${{ vars.VAR_REPO_PRINCIPAL_PATH }}/devops/kubernetes
+          kubectl apply -f 3-hpa.yml
+
+  job_cu_repository:
+    runs-on: [self-hosted, ghrg-bf-desa-devsecops]
+    needs: [job_ci_buildImage, job_cd_deployImageK8s]
+    if: always()
+    steps:
+      - name: stp-cleanupArtifacts
+        if: always()
+        run: |
+          cd ${{ github.workspace }}
+          ls -lta
+          echo "Eliminando archivos temporales..."
+          rm -rf .[^.]* *
+          ls -lta
+          echo "Cleanup completado."

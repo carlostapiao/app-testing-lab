@@ -1,0 +1,134 @@
+# ============================================
+# DEPENDENCIAS Y ARCHIVOS COMPILADOS
+# ============================================
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# ============================================
+# VARIABLES DE ENTORNO Y CONFIGURACIÓN LOCAL
+# ============================================
+.env
+.env.*
+properties.local.yml
+
+# ============================================
+# LOGS
+# ============================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ============================================
+# TESTING Y COBERTURA
+# ============================================
+coverage/
+.nyc_output/
+*.lcov
+.jest/
+
+# ============================================
+# IDEs Y EDITORES
+# ============================================
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# IntelliJ IDEA / WebStorm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Eclipse
+.project
+.classpath
+.settings/
+*.launch
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Cloud9
+.c9/
+
+# ============================================
+# SISTEMA OPERATIVO
+# ============================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ============================================
+# ARCHIVOS TEMPORALES Y RUNTIME
+# ============================================
+.tmp/
+.temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.cache/
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# ============================================
+# HERRAMIENTAS DE DESARROLLO
+# ============================================
+# Postman
+postman/
+.postman/
+
+# NPM
+.npmrc
+.npm
+package-lock.json.backup
+
+# ============================================
+# NESTJS / TYPESCRIPT ESPECÍFICO
+# ============================================
+# TypeScript cache
+*.tsbuildinfo
+
+# NestJS
+.nest/
+
+# ============================================
+# HUSKY
+# ============================================
+.husky/_/

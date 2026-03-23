@@ -1,0 +1,90 @@
+{
+    "$schema": "https://biomejs.dev/schemas/2.3.15/schema.json",
+    "vcs": {
+        "enabled": true,
+        "clientKind": "git",
+        "useIgnoreFile": true
+    },
+    "files": {
+        "ignoreUnknown": false
+    },
+    "formatter": {
+        "enabled": true,
+        "formatWithErrors": true,
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineEnding": "auto",
+        "lineWidth": 120,
+        "attributePosition": "auto"
+    },
+    "assist": { "actions": { "source": { "organizeImports": "on" } } },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "recommended": true,
+            "complexity": {
+                "noBannedTypes": "error",
+                "noUselessTypeConstraint": "error",
+                "noStaticOnlyClass": "off"
+            },
+            "correctness": {
+                "noUnusedVariables": "warn",
+                "noUnusedImports": "warn",
+                "useExhaustiveDependencies": "off",
+                "noVoidTypeReturn": "warn"
+            },
+            "style": {
+                "noParameterAssign": "warn",
+                "useConst": "error",
+                "useTemplate": "error",
+                "useImportType": "warn"
+            },
+            "suspicious": {
+                "noExplicitAny": "warn",
+                "noArrayIndexKey": "warn",
+                "useIterableCallbackReturn": "warn",
+                "noPrototypeBuiltins": "off"
+            },
+            "nursery": {
+                "useSortedClasses": "off"
+            }
+        }
+    },
+    "javascript": {
+        "formatter": {
+            "quoteStyle": "single",
+            "jsxQuoteStyle": "double",
+            "quoteProperties": "asNeeded",
+            "trailingCommas": "es5",
+            "semicolons": "always",
+            "arrowParentheses": "asNeeded",
+            "bracketSpacing": true,
+            "bracketSameLine": false
+        },
+        "parser": {
+            "unsafeParameterDecoratorsEnabled": true
+        }
+    },
+    "overrides": [
+        {
+            "includes": ["**/*.test.ts", "**/*.spec.ts", "**/tests/**/*", "**/test/**/*"],
+            "linter": {
+                "rules": {
+                    "correctness": {
+                        "noUnusedVariables": "off"
+                    }
+                }
+            }
+        },
+        {
+            "includes": ["**/*.ts"],
+            "linter": {
+                "rules": {
+                    "style": {
+                        "useImportType": "off"
+                    }
+                }
+            }
+        }
+    ]
+}
